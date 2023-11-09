@@ -1,81 +1,93 @@
-const canvas = document.getElementById("canvas");
+const canvas = document.getElementById("canvas"); // Dobivanje reference na canvas element
 const ctx = canvas.getContext("2d");
-let gameTime = 0;
-const playerSize = 40;
-let playerSpeed = 2;
-const asteroidSize = 50;
-let asteroidSpeed = 3;
-const maxAsteroidNumber = 50;
-let asteroidSpawnTime = 1100;
-const asteroidChangePathTime = 20000;
-const asteroids = [];
-
-const gameStages = [
-  { time: 140000, spawnTime: 200, playerSpeed: 5.5, asteroidSpeed: 6.5 },
-  { time: 120000, spawnTime: 300, playerSpeed: 5, asteroidSpeed: 6 },
-  { time: 100000, spawnTime: 400, playerSpeed: 4.5, asteroidSpeed: 5.5 },
-  { time: 80000, spawnTime: 450, playerSpeed: 4, asteroidSpeed: 5 },
-  { time: 60000, spawnTime: 700, playerSpeed: 3.5, asteroidSpeed: 4.5 },
-  { time: 40000, spawnTime: 900, playerSpeed: 3, asteroidSpeed: 4 },
-  { time: 20000, spawnTime: 1000, playerSpeed: 2.5, asteroidSpeed: 3.5 },
-];
+let gameTime = 0; // Inicijalizacija vremena igre
+const playerSize = 40; // Veličina igrača
+let playerSpeed = 2; // Brzina igrača
+const asteroidSize = 50; // Veličina asteroida
+let asteroidSpeed = 3; // Brzina asteroida
+const maxAsteroidNumber = 50; // Maksimalan broj asteroida
+let asteroidSpawnTime = 1100; // Vrijeme između generiranja asteroida
+const asteroidChangePathTime = 20000; // Vrijeme za nasumičnu promjenu putanje asteroida
+const asteroids = []; // Array u koji spremamo asteroide
 
 canvas.width = window.innerWidth * 0.99;
 canvas.height = window.innerHeight * 0.99;
-let playerX = canvas.width / 2;
-let playerY = canvas.height / 2;
-let startTime = new Date().getTime();
-let bestTime = localStorage.getItem("bestTime") || 0;
+let playerX = canvas.width / 2; // Početna X pozicija igrača na sredini canvasa
+let playerY = canvas.height / 2; // Početna Y pozicija igrača na sredini canvasa
+let startTime = new Date().getTime(); // Početno vrijeme igre
+let bestTime = localStorage.getItem("bestTime") || 0; // Dohvaćanje najboljeg vremena iz local storagea
 
-let keys = {};
+// Faze igre, svaka faza ima svoje parametre.
+const gameStages = [
+  { time: 140000, spawnTime: 200, playerSpeed: 5.5, asteroidSpeed: 6.5 },
+  { time: 120000, spawnTime: 300, playerSpeed: 5, asteroidSpeed: 6 },
+  { time: 100000, spawnTime: 350, playerSpeed: 4.5, asteroidSpeed: 5.5 },
+  { time: 80000, spawnTime: 400, playerSpeed: 4, asteroidSpeed: 5 },
+  { time: 60000, spawnTime: 550, playerSpeed: 3.5, asteroidSpeed: 4.5 },
+  { time: 40000, spawnTime: 800, playerSpeed: 3, asteroidSpeed: 4 },
+  { time: 20000, spawnTime: 1000, playerSpeed: 2.5, asteroidSpeed: 3.5 },
+];
+
+let keys = {}; // Objekt za praćenje pritisnutih tipki
+
 document.addEventListener("keydown", function (event) {
-  keys[event.key] = true;
+  keys[event.key] = true; // Postavljanje pritisnute tipke na true
 });
 
 document.addEventListener("keyup", function (event) {
-  keys[event.key] = false;
+  keys[event.key] = false; // Postavljanje otpuštene tipke na false
 });
 
 function movePlayer() {
   if (keys["ArrowUp"] && keys["ArrowRight"]) {
+    // Pomak igrača prema gore desno
     playerX += playerSpeed / Math.sqrt(2);
     playerY -= playerSpeed / Math.sqrt(2);
   } else if (keys["ArrowUp"] && keys["ArrowLeft"]) {
+    // Pomak igrača prema gore lijevo
     playerX -= playerSpeed / Math.sqrt(2);
     playerY -= playerSpeed / Math.sqrt(2);
   } else if (keys["ArrowDown"] && keys["ArrowRight"]) {
+    // Pomak igrača prema dolje desno
     playerX += playerSpeed / Math.sqrt(2);
     playerY += playerSpeed / Math.sqrt(2);
   } else if (keys["ArrowDown"] && keys["ArrowLeft"]) {
+    // Pomak igrača prema dolje lijevo
     playerX -= playerSpeed / Math.sqrt(2);
     playerY += playerSpeed / Math.sqrt(2);
   } else if (keys["ArrowUp"]) {
+    // Pomak igrača prema gore
     playerY -= playerSpeed;
   } else if (keys["ArrowDown"]) {
+    // Pomak igrača prema dolje
     playerY += playerSpeed;
   } else if (keys["ArrowRight"]) {
+    // Pomak igrača u desno
     playerX += playerSpeed;
   } else if (keys["ArrowLeft"]) {
+    // Pomak igrača u lijevo
     playerX -= playerSpeed;
   }
 }
 
 function gameLoop() {
-  update();
-  render();
+  update(); // Ažuriranje stanja igre
+  render(); // Crtanje igre
 }
 
 function update() {
-  checkCollision();
-  movePlayer();
-  gameTime = new Date().getTime() - startTime;
+  checkCollision(); // Provjeravanje sudara
+  movePlayer(); // Pomak igrača
+  gameTime = new Date().getTime() - startTime; // Ažuriranje vremena igre
 
+  // Ažuriranje pozicija asteroida
   for (let i = 0; i < asteroids.length; i++) {
     const asteroid = asteroids[i];
     asteroid.x += asteroid.dx;
     asteroid.y += asteroid.dy;
   }
 
+  // Promjena parametara igre prema fazama
   for (let i = 0; i < gameStages.length; i++) {
     if (gameTime > gameStages[i].time) {
       asteroidSpawnTime = gameStages[i].spawnTime;
@@ -87,14 +99,14 @@ function update() {
 }
 
 function render() {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  drawPlayer();
-  
-  for (let i = 0; i < asteroids.length; i++) drawAsteroid(asteroids[i]);
+  ctx.clearRect(0, 0, canvas.width, canvas.height); // Brisanje prethodnog kadra
+  drawPlayer(); // Crtanje igrača
 
-  displayTime();
-  displayBestTime();
-  requestAnimationFrame(gameLoop);
+  for (let i = 0; i < asteroids.length; i++) drawAsteroid(asteroids[i]); // Crtanje asteroida
+
+  displayTime(); // Prikaz vremena igre
+  displayBestTime(); // Prikaz najboljeg vremena
+  requestAnimationFrame(gameLoop); // Ponovni poziv glavne petlje za animaciju
 }
 
 function generateAsteroids() {
@@ -102,19 +114,19 @@ function generateAsteroids() {
   const side = Math.floor(Math.random() * 4);
 
   if (side === 0) {
-    // Lijevo
+    // Asteroid dolazi s lijeva
     x = -asteroidSize;
     y = Math.random() * canvas.height;
   } else if (side === 1) {
-    // Desno
+    // Asteroid dolazi s desna
     x = canvas.width + asteroidSize;
     y = Math.random() * canvas.height;
   } else if (side === 2) {
-    // Gore
+    // Asteroid dolazi odozgo
     x = Math.random() * canvas.width;
     y = -asteroidSize;
   } else {
-    // Dole
+    // Asteroid dolazi odozdo
     x = Math.random() * canvas.width;
     y = canvas.height + asteroidSize;
   }
@@ -131,7 +143,7 @@ function generateAsteroids() {
 
   asteroids.push({ x, y, dx, dy });
 
-  // za sprječavanje eventualnog zagušenja, da ne bi bilo previše asteroida van canvasa
+  // Za sprječavanje eventualnog zagušenja, da ne bi bilo previše asteroida van canvasa
   if (asteroids.length > maxAsteroidNumber) asteroids.splice(0, 1);
 }
 
@@ -155,7 +167,7 @@ function checkCollision() {
       playerTop < asteroidBottom &&
       playerBottom > asteroidTop
     ) {
-      endGame();
+      endGame(); // Završetak igre u slučaju sudara
       break;
     }
   }
@@ -163,6 +175,7 @@ function checkCollision() {
 
 function changeAsteroidPath() {
   for (let i = 0; i < asteroids.length; i++) {
+    // Nasumična promjena smjera kretanja asteroida
     asteroids[i].dx = Math.cos(Math.random() * Math.PI * 2) * asteroidSpeed;
     asteroids[i].dy = Math.sin(Math.random() * Math.PI * 2) * asteroidSpeed;
   }
@@ -170,11 +183,12 @@ function changeAsteroidPath() {
 
 function endGame() {
   if (gameTime > parseFloat(bestTime) || bestTime === 0)
-    localStorage.setItem("bestTime", gameTime);
+    localStorage.setItem("bestTime", gameTime); // Ažuriranje najboljeg vremena ako je trenutno vrijeme bolje.
 
-  location.reload();
+  location.reload(); // Ponovno učitavanje igre nakon završetka
 }
 
+// Funkcija za crtanje igrača
 function drawPlayer() {
   ctx.shadowColor = "rgba(128, 128, 128, 0.7)";
   ctx.shadowBlur = 10;
@@ -187,6 +201,7 @@ function drawPlayer() {
   );
 }
 
+// Funkcija za crtanje asteroida
 function drawAsteroid(asteroid) {
   ctx.shadowColor = "rgba(128, 128, 128, 0.7)";
   ctx.shadowBlur = 10;
@@ -199,6 +214,7 @@ function drawAsteroid(asteroid) {
   );
 }
 
+// Funkcija za formatiranje vremena
 function formatTime(time) {
   const minutes = Math.floor(time / 60000)
     .toString()
@@ -210,6 +226,7 @@ function formatTime(time) {
   return `${minutes}:${seconds}.${milliseconds}`;
 }
 
+// Funkcija za prikazivanje najboljeg vremena
 function displayBestTime() {
   const bestTimeFromStorage = parseFloat(localStorage.getItem("bestTime") || 0);
   const bestTimeText = "Najbolje vrijeme: " + formatTime(bestTimeFromStorage);
@@ -219,6 +236,7 @@ function displayBestTime() {
   ctx.fillText(bestTimeText, x, 30);
 }
 
+// Funkcija za prikazivanje trenutnog vremena
 function displayTime() {
   ctx.fillStyle = "#fff";
   ctx.font = "20px Arial";
@@ -227,7 +245,7 @@ function displayTime() {
   ctx.fillText(timeText, x, 60);
 }
 
-for (let i = 0; i < 2; i++) generateAsteroids();
-requestAnimationFrame(gameLoop);
-setInterval(generateAsteroids, asteroidSpawnTime);
-setInterval(changeAsteroidPath, asteroidChangePathTime);
+for (let i = 0; i < 2; i++) generateAsteroids(); // Generiranje početnih asteroida
+requestAnimationFrame(gameLoop); // Pokretanje glavne petlje za animaciju
+setInterval(generateAsteroids, asteroidSpawnTime); // Interval za generiranje asteroida
+setInterval(changeAsteroidPath, asteroidChangePathTime); // Interval za promjenu nasumične putanje asteroida
